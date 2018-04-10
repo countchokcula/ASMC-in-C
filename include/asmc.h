@@ -1,6 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <errno.h>
 
 #define CMD_COUNT 4
 
@@ -17,10 +21,13 @@ enum COMMANDS {
     BUILD
 };
 
-void print_usages();
 int map_command(const char*);
+void print_usages();
 void parse_args(const attributes*);
-
+void new_project(const char*);
+void intialize_project();
+void run_project();
+void build_project();
 
 int map_command(const char* command){
     char* cmd[CMD_COUNT] = {"new", "initialize", "run", "build"};
@@ -49,6 +56,26 @@ void parse_args(const attributes* args){
         print_usages();
     }
     return;
+}
+void new_project(const char* project_name){
+    char* p_name_ptr = (char*) malloc(sizeof(char) * strlen(project_name));
+    sprintf(p_name_ptr, "./%s", project_name);
+    struct stat st = {0};
+    if(stat(p_name_ptr, &st) == -1){
+        mkdir(p_name_ptr, 0700);
+    }else{
+        fprintf(stderr, "Directory already exists!\n");        
+    }
+    free(p_name_ptr);
+}
+void intialize_project(){
+
+}
+void run_project(){
+
+}
+void build_project(){
+
 }
 void print_usages(){
     const char* commands[CMD_COUNT] = {

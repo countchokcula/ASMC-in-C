@@ -1,5 +1,5 @@
 #include "../include/asmc.h"
 int main(int argc, char** argv){
-    print_usages();
+    new_project("Some project");
     return 0;
 }
