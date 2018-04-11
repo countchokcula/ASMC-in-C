@@ -7,6 +7,8 @@
 #include <errno.h>
 
 #define CMD_COUNT 4
+#define DIRECTORY_COUNT 3
+#define TOTAL_ATTRIBUTES 4
 
 typedef const struct {
     char* name;
@@ -20,14 +22,21 @@ enum COMMANDS {
     RUN,
     BUILD
 };
+//Tools
+void create_folder(const char*);
+
 
 int map_command(const char*);
+
+//Program Logic
 void print_usages();
-void parse_args(const attributes*);
+void parse_args(attributes*);
+//Program Commands
 void new_project(const char*);
 void intialize_project();
 void run_project();
 void build_project();
+
 
 int map_command(const char* command){
     char* cmd[CMD_COUNT] = {"new", "initialize", "run", "build"};
@@ -37,10 +46,11 @@ int map_command(const char* command){
         }
     }
 }
-void parse_args(const attributes* args){
+void parse_args(attributes* args){
     if(args->command != '\0'){
         switch(map_command(args->command)){
             case NEW:
+                new_project(args->params);
                 break;
             case INITIALIZE:
                 break;
@@ -58,15 +68,29 @@ void parse_args(const attributes* args){
     return;
 }
 void new_project(const char* project_name){
-    char* p_name_ptr = (char*) malloc(sizeof(char) * strlen(project_name));
-    sprintf(p_name_ptr, "./%s", project_name);
-    struct stat st = {0};
-    if(stat(p_name_ptr, &st) == -1){
-        mkdir(p_name_ptr, 0700);
-    }else{
-        fprintf(stderr, "Directory already exists!\n");        
+    char* dir_name_ptr = (char*) malloc(sizeof(char) * strlen(project_name));
+    sprintf(dir_name_ptr, "./%s", project_name);
+    create_folder(dir_name_ptr);
+
+
+    char* dirs[DIRECTORY_COUNT] = {"src", "include", "target"};
+    for(int i = 0; i<DIRECTORY_COUNT; i++){
+        dir_name_ptr = realloc(dir_name_ptr, sizeof(char) * strlen(*(dirs + i)) + strlen(project_name));
+        sprintf(dir_name_ptr, "./%s/%s", project_name, *(dirs + i));
+        create_folder(dir_name_ptr);
     }
-    free(p_name_ptr);
+    free(dir_name_ptr);
+}
+void create_folder(const char* dir_name_ptr){
+    struct stat st = {0};
+    if(stat(dir_name_ptr, &st) == -1){
+        mkdir(dir_name_ptr, 0700);
+    }else{
+        fprintf(stderr, "%s already exists!\n", dir_name_ptr);        
+    }
+}
+void create_main(){
+  //  FILE *fopen("")
 }
 void intialize_project(){
 
