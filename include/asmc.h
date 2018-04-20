@@ -9,12 +9,13 @@
 #define CMD_COUNT 4
 #define DIRECTORY_COUNT 3
 #define TOTAL_ATTRIBUTES 4
+#define NO_COMMAND 404
 
 typedef const struct {
     char* name;
-    char* command;
-    char* params;
-    char* options;
+    char* command; // for the program to execute
+    char* params; // for command
+    char* options; // extra options for command
 } attributes;
 enum COMMANDS {
     NEW,
@@ -23,74 +24,93 @@ enum COMMANDS {
     BUILD
 };
 //Tools
-void create_folder(const char*);
-
-
-int map_command(const char*);
+void create_folder(const char*); //creates directory
+int map_command(const char*); //returns the ID of the corrosponding command  
+char* read_file(char*); // reads file and outputs string
 
 //Program Logic
-void print_usages();
-void parse_args(attributes*);
+void print_usages(); //prints text on how to use program
+void parse_args(attributes*); //reads arguments are executes them
+void create_main_asm(char*); //creates src/main.asm
+
 //Program Commands
-void new_project(const char*);
-void intialize_project();
-void run_project();
-void build_project();
+void new_project(const char*); //creates folders and files needed for the project
+void intialize_project(); //recreates any missing files or folders
+void run_project(); //runs the project
+void build_project(); //creates an executable
 
 
 int map_command(const char* command){
     char* cmd[CMD_COUNT] = {"new", "initialize", "run", "build"};
-    for(int i = 0; i < CMD_COUNT; i++){
-        if(strcmp(command, cmd[i]) == 0){
-            return i;            
-        }
-    }
+    for(int i = 0; i < CMD_COUNT; i++) if(strcmp(command, cmd[i]) == 0) return i;
+ 
+    return NO_COMMAND; // NOTE: returns 404 if none match;
 }
 void parse_args(attributes* args){
-    if(args->command != '\0'){
-        switch(map_command(args->command)){
-            case NEW:
-                new_project(args->params);
-                break;
-            case INITIALIZE:
-                break;
-            case RUN:
-                break;
-            case BUILD:
-                break;
-            default:
-                print_usages();
-                break;
-        }
-    }else{
-        print_usages();
+    switch(map_command(args->command)){
+        case NEW:
+            if(args->params == "\0" || strcmp(args->params, ".") == 0) { 
+                fprintf(stderr, "Please enter a valid directory name\n");
+                return;
+            }
+            new_project(args->params);
+            break;
+        case INITIALIZE:
+            break;
+        case RUN:
+            break;
+        case BUILD:
+            break;
+        default:
+            print_usages();
+            break;
     }
-    return;
 }
+
 void new_project(const char* project_name){
-    char* dir_name_ptr = (char*) malloc(sizeof(char) * strlen(project_name));
+    
+    
+    int project_name_length = strlen(project_name);
+    char* dir_name_ptr = (char*) malloc(sizeof(char) * project_name_length); // NOTE: allocates size of project_name
     sprintf(dir_name_ptr, "./%s", project_name);
     create_folder(dir_name_ptr);
 
-
     char* dirs[DIRECTORY_COUNT] = {"src", "include", "target"};
-    for(int i = 0; i<DIRECTORY_COUNT; i++){
-        dir_name_ptr = realloc(dir_name_ptr, sizeof(char) * strlen(*(dirs + i)) + strlen(project_name));
-        sprintf(dir_name_ptr, "./%s/%s", project_name, *(dirs + i));
-        create_folder(dir_name_ptr);
+
+    for(int i = 0; i < DIRECTORY_COUNT; i++){
+        dir_name_ptr = realloc(dir_name_ptr, sizeof(char) * strlen(*(dirs + i)) + project_name_length); // NOTE: allocates size of new directory name
+        sprintf(dir_name_ptr, "./%s/%s", project_name, *(dirs + i)); // formats string
+        create_folder(dir_name_ptr); // create new folder
+
+        if(*(dirs + i) == "src"){
+            dir_name_ptr = realloc(dir_name_ptr, strlen(dir_name_ptr) + strlen("/main.asm")); // NOTE: allocates '/main.asm'
+            strcat(dir_name_ptr, "/main.asm"); // ./project_name/src/main.asm
+            create_main_asm(dir_name_ptr); // ^
+        }
+
     }
-    free(dir_name_ptr);
+    free(dir_name_ptr); // NOTE: Free here
 }
 void create_folder(const char* dir_name_ptr){
-    struct stat st = {0};
+    struct stat st = {0}; // holds status
     if(stat(dir_name_ptr, &st) == -1){
         mkdir(dir_name_ptr, 0700);
+        printf("\t=== %s created\n", dir_name_ptr);
     }else{
-        fprintf(stderr, "%s already exists!\n", dir_name_ptr);        
+        fprintf(stderr, "\t=== %s already exists!\n", dir_name_ptr);        
     }
 }
-void create_main(){
-  //  FILE *fopen("")
+void create_main_asm(char* dir_name_ptr){
+    FILE* main_asm = fopen(dir_name_ptr, "w+"); //creates main.asm in dir_name_ptr
+    char* bootloader_txt = read_file("bootloader.txt");
+
+    if(fprintf(main_asm, "%s", bootloader_txt) == 0){
+        fprintf(stderr, "\t=== Could not create file %s\n", dir_name_ptr);
+    }else{
+        printf("\t=== %s created\n", dir_name_ptr);
+    };
+
+    fclose(main_asm);
 }
 void intialize_project(){
 
@@ -100,6 +120,44 @@ void run_project(){
 }
 void build_project(){
 
+}
+char* read_file(char *filename) {
+   char *buffer = NULL;
+   int string_size, read_size;
+   FILE *handler = fopen(filename, "r");
+
+   if (handler)
+   {
+       // Seek the last byte of the file
+       fseek(handler, 0, SEEK_END);
+       // Offset from the first to the last byte, or in other words, filesize
+       string_size = ftell(handler);
+       // go back to the start of the file
+       rewind(handler);
+
+       // Allocate a string that can hold it all
+       buffer = (char*) malloc(sizeof(char) * (string_size + 1) );
+
+       // Read it all in one operation
+       read_size = fread(buffer, sizeof(char), string_size, handler);
+
+       // fread doesn't set it so put a \0 in the last position
+       // and buffer is now officially a string
+       buffer[string_size] = '\0';
+
+       if (string_size != read_size)
+       {
+           // Something went wrong, throw away the memory and set
+           // the buffer to NULL
+           free(buffer);
+           buffer = NULL;
+       }
+
+       // Always remember to close the file.
+       fclose(handler);
+    }
+
+    return buffer;
 }
 void print_usages(){
     const char* commands[CMD_COUNT] = {
