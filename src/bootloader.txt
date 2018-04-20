@@ -8,6 +8,10 @@ CursorLeft equ -1
 jmp DEFAULT_VIDEO_BIOS
 
 
+<<<<<<< HEAD
+=======
+%include 'include/Interrupts/BIOS_10.asm'
+>>>>>>> 81153ed192c13543ad1b467c379c6d0b02ebf5ea
 
 DEFAULT_VIDEO_BIOS:
     mov ax, 0x8000
